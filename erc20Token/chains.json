@@ -1,0 +1,14 @@
+{
+  "0xfa41a26cc8565d0260d682f0c4b200d478ada267153bab63c42fad630907c65c": {
+    "contracts": {
+      "0x7290290a84fbb94bafbe1f3bcb40b52d6b3ef8a8bafddd5c3efc7bf0856f72d5": {
+        "name": "Owned",
+        "address": "0xFEb1FC8E90c45291d0b50A1f5d4C214212ff2fa3"
+      },
+      "0x8583c5c84fd7e36705a15a637330546c5887485ae2401adad6281ff2e0cd0aab": {
+        "name": "Token",
+        "address": "0x89ca239fBF181247B7376a8345eD5C781f530F98"
+      }
+    }
+  }
+}
