@@ -62,6 +62,15 @@ module Game {
         return;
     }
 
+    public play() {
+        // just simple mock
+        let game: &mut R#Self.T;
+        let sender: address;
+        sender = get_txn_sender();
+        game = borrow_global<T>(move(sender));
+        *(&mut move(game).state) = 0;
+        return;
+    }
 
     destory(game: R#Self.T) {
         let funder_coin: R#LibraCoin.T;
@@ -124,6 +133,7 @@ main() {
     let winner: address;
     funding = LibraAccount.withdraw_from_sender(1000);
     Game.new(move(funding), {{bob}});
+    Game.play();
     //Game.close(); //bob not deposit failed.
     return;
 }
