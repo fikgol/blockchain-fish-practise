@@ -1,0 +1,143 @@
+module Game {
+    import 0x0.LibraCoin;
+    resource T{
+        funder_coin: R#LibraCoin.T,
+        party_coin: R#LibraCoin.T,
+        funder: address,
+        party: address,
+        state: u64,
+    }
+
+    public new(funding: R#LibraCoin.T, other: address){
+        let sender: address;
+        let party_coin: R#LibraCoin.T;
+        let total_coin: R#LibraCoin.T;
+        let game: R#Self.T;
+        sender = get_txn_sender();
+        party_coin = LibraCoin.zero();
+        game = T{
+            funder_coin: move(funding),
+            party_coin: move(party_coin),
+            funder: move(sender),
+            party: move(other),
+            state: 0,
+        };
+        move_to_sender<T>(move(game));
+        return;
+    }
+
+    public join(deposit:R#LibraCoin.T, funder:address){
+        let game: &mut R#Self.T;
+        game = borrow_global<T>(move(funder));
+        LibraCoin.deposit(&mut copy(game).party_coin, move(deposit));
+        release(move(game));
+        return;
+    }
+
+    public close(funder: address) {
+        let game: &mut R#Self.T;
+        let game_ref: &R#Self.T;
+        let winner: address;
+        let amt_ref: &R#LibraCoin.T;
+        let amt_value: u64;
+        let amt: R#LibraCoin.T;
+        game = borrow_global<T>(move(funder));
+        game_ref = freeze(copy(game));
+        winner = Self.do_get_winner(copy(game_ref));
+
+        if (move(winner) == *&copy(game_ref).funder){
+            amt_ref = &copy(game_ref).party_coin;
+            amt_value = LibraCoin.value(move(amt_ref));
+            release(move(game_ref));
+            amt = LibraCoin.withdraw(&mut copy(game).party_coin, move(amt_value));
+            LibraCoin.deposit(&mut copy(game).funder_coin, move(amt));
+        } else{
+            amt_ref = &copy(game_ref).funder_coin;
+            amt_value = LibraCoin.value(move(amt_ref));
+            release(move(game_ref));
+            amt = LibraCoin.withdraw(&mut copy(game).funder_coin, move(amt_value));
+            LibraCoin.deposit(&mut copy(game).party_coin, move(amt));
+        }
+        release(move(game));
+        return;
+    }
+
+
+    destory(game: R#Self.T) {
+        let funder_coin: R#LibraCoin.T;
+        let party_coin: R#LibraCoin.T;
+        let funder: address;
+        let party: address;
+        let state: u64;
+        T{funder_coin, party_coin, funder, party, state} = move(game);
+        LibraCoin.destroy_zero(move(funder_coin));
+        LibraCoin.destroy_zero(move(party_coin));
+        return;
+    }
+
+    party(this: &R#Self.T): address {
+        let party: address;
+        party = *&move(this).party;
+        return move(party);
+    }
+
+    funder(this: &R#Self.T): address {
+        let funder: address;
+        funder = *&move(this).funder;
+        return move(funder);
+    }
+
+    state(this: &R#Self.T): u64 {
+        let state: u64;
+        state = *&move(this).state;
+        return move(state);
+    }
+
+    do_get_winner(this: &R#Self.T): address{
+        let state: u64;
+        let ref: &R#Self.T;
+        let winner: address;
+        let sender: address;
+        sender = get_txn_sender();
+        ref = copy(this);
+        state = Self.state(move(this));
+        if (move(state) == 0){
+            winner = Self.funder(move(ref));
+        } else{
+            winner = Self.party(move(ref));
+        }
+        return move(winner);
+    }
+}
+
+
+//! account: alice, 1000000
+//! account: bob, 1000000
+
+//! new-transaction
+//! sender: alice
+import 0x0.LibraCoin;
+import 0x0.LibraAccount;
+import {{default}}.Game;
+main() {
+    let funding: R#LibraCoin.T;
+    let winner: address;
+    funding = LibraAccount.withdraw_from_sender(1000);
+    Game.new(move(funding), {{bob}});
+    //Game.close(); //bob not deposit failed.
+    return;
+}
+
+
+//! new-transaction
+//! sender: bob
+import {{default}}.Game;
+import 0x0.LibraAccount;
+import 0x0.LibraCoin;
+main() {
+    let deposit :R#LibraCoin.T;
+    deposit = LibraAccount.withdraw_from_sender(1000);
+    Game.join(move(deposit), {{alice}});
+    Game.close({{alice}});
+    return;
+}
